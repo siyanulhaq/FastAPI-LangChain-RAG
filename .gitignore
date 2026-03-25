@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+chroma_storage/
+uploaded_docs/
+error_log.txt
+rag_frontend - Copy.html
+*.env
+.env

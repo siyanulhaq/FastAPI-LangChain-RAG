@@ -1,0 +1,8 @@
+Python is the most popular programming language for AI development.
+RAG stands for Retrieval Augmented Generation.
+RAG stands for Retrieval Augmented Generation.
+ChromaDB is a vector database used to store embeddings.
+computer is a device which listens to the user
+computer is a device which listens to the user
+human is a living being
+This project is built using FastAPI and LangChain.

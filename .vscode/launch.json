@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run RAG Backend",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/rag_backend.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

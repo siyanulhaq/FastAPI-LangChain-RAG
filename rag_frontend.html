@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RAG Knowledge System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a28;
+    --border: #2a2a40;
+    --accent: #7c5cfc;
+    --accent2: #00e5c8;
+    --danger: #ff4d6d;
+    --warning: #ffb347;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; overflow-x:hidden; }
+
+  .page { display:none; min-height:100vh; }
+  .page.active { display:flex; flex-direction:column; }
+
+  /* ---- LANDING ---- */
+  #landing { align-items:center; justify-content:center; padding:2rem; position:relative; }
+  #landing::before {
+    content:''; position:fixed; inset:0;
+    background: radial-gradient(ellipse 60% 40% at 20% 30%, rgba(124,92,252,0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 40% at 80% 70%, rgba(0,229,200,0.06) 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .landing-inner { max-width:860px; width:100%; text-align:center; z-index:1; }
+  .landing-tag {
+    display:inline-block; font-size:0.7rem; letter-spacing:0.2em; color:var(--accent);
+    border:1px solid var(--accent); padding:0.3rem 0.9rem; border-radius:100px;
+    margin-bottom:1.8rem; text-transform:uppercase; animation:fadeUp 0.5s ease both;
+  }
+  .landing-title {
+    font-family:'Syne',sans-serif; font-size:clamp(2.4rem,6vw,4rem); font-weight:800;
+    line-height:1.05; margin-bottom:1rem; animation:fadeUp 0.5s 0.1s ease both;
+  }
+  .landing-title span { background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .landing-sub { color:var(--muted); font-size:0.9rem; margin-bottom:3.5rem; animation:fadeUp 0.5s 0.2s ease both; }
+  .role-cards { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; animation:fadeUp 0.5s 0.3s ease both; }
+  @media(max-width:600px){ .role-cards { grid-template-columns:1fr; } }
+  .role-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:2.2rem 1.8rem; cursor:pointer; transition:transform 0.25s,border-color 0.25s,box-shadow 0.25s;
+    text-align:left; position:relative; overflow:hidden;
+  }
+  .role-card::before { content:''; position:absolute; inset:0; opacity:0; transition:opacity 0.3s; }
+  .role-card.admin-card::before { background:rgba(124,92,252,0.15); }
+  .role-card.user-card::before  { background:rgba(0,229,200,0.15); }
+  .role-card:hover { transform:translateY(-4px); }
+  .role-card.admin-card:hover { border-color:var(--accent); box-shadow:0 8px 40px rgba(124,92,252,0.2); }
+  .role-card.user-card:hover  { border-color:var(--accent2); box-shadow:0 8px 40px rgba(0,229,200,0.2); }
+  .role-card:hover::before { opacity:1; }
+  .card-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; margin-bottom:1.2rem; }
+  .admin-card .card-icon { background:rgba(124,92,252,0.15); }
+  .user-card  .card-icon { background:rgba(0,229,200,0.12); }
+  .card-title { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:700; margin-bottom:0.5rem; }
+  .admin-card .card-title { color:var(--accent); }
+  .user-card  .card-title { color:var(--accent2); }
+  .card-desc { color:var(--muted); font-size:0.8rem; line-height:1.6; }
+  .card-features { margin-top:1.2rem; display:flex; flex-direction:column; gap:0.5rem; }
+  .feat { display:flex; align-items:center; gap:0.6rem; font-size:0.75rem; color:var(--text); }
+  .feat-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .admin-card .feat-dot { background:var(--accent); }
+  .user-card  .feat-dot { background:var(--accent2); }
+
+  /* ---- PANEL HEADER ---- */
+  .panel-header {
+    display:flex; align-items:center; gap:1rem; padding:1.2rem 2rem;
+    border-bottom:1px solid var(--border); background:var(--surface);
+    position:sticky; top:0; z-index:100;
+  }
+  .back-btn {
+    background:none; border:1px solid var(--border); color:var(--muted);
+    font-family:'DM Mono',monospace; font-size:0.75rem; padding:0.4rem 0.9rem;
+    border-radius:8px; cursor:pointer; transition:all 0.2s;
+  }
+  .back-btn:hover { border-color:var(--text); color:var(--text); }
+  .panel-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; }
+  .panel-badge {
+    margin-left:auto; font-size:0.65rem; padding:0.25rem 0.7rem;
+    border-radius:100px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+  }
+  .badge-admin { background:rgba(124,92,252,0.2); color:var(--accent); border:1px solid var(--accent); }
+  .badge-user  { background:rgba(0,229,200,0.15); color:var(--accent2); border:1px solid var(--accent2); }
+
+  /* ---- ADMIN TABS ---- */
+  .admin-tabs {
+    display:flex; gap:0; border-bottom:1px solid var(--border);
+    background:var(--surface); padding:0 2rem;
+  }
+  .tab-btn {
+    background:none; border:none; color:var(--muted); font-family:'DM Mono',monospace;
+    font-size:0.78rem; padding:0.9rem 1.4rem; cursor:pointer; transition:all 0.2s;
+    border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .tab-btn:hover { color:var(--text); }
+  .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+  /* ---- TAB PANELS ---- */
+  .tab-panel { display:none; padding:2rem; flex:1; }
+  .tab-panel.active { display:flex; flex-direction:column; }
+
+  /* ---- ADMIN BODY (doc + qa side by side) ---- */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:2rem; flex:1; }
+  @media(max-width:800px){ .two-col { grid-template-columns:1fr; } }
+
+  .section-label {
+    font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:1.2rem; display:flex; align-items:center; gap:0.5rem;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* ---- DOCUMENT LINES ---- */
+  .doc-line {
+    display:flex; align-items:flex-start; gap:0.6rem; padding:0.6rem 0;
+    border-bottom:1px solid rgba(255,255,255,0.04); animation:fadeIn 0.2s ease;
+  }
+  .line-num { color:var(--muted); font-size:0.7rem; min-width:24px; padding-top:0.5rem; }
+  .line-text {
+    flex:1; background:none; border:none; color:var(--text); font-family:'DM Mono',monospace;
+    font-size:0.8rem; line-height:1.5; resize:none; outline:none; padding:0.4rem 0.6rem;
+    border-radius:6px; transition:background 0.2s; min-height:36px;
+  }
+  .line-text:focus { background:var(--surface2); outline:1px solid var(--accent); }
+  .line-actions { display:flex; gap:0.3rem; padding-top:0.3rem; }
+  .btn-save, .btn-del {
+    font-size:0.65rem; padding:0.3rem 0.6rem; border-radius:6px; cursor:pointer;
+    font-family:'DM Mono',monospace; border:none; transition:all 0.2s;
+  }
+  .btn-save { background:rgba(124,92,252,0.2); color:var(--accent); }
+  .btn-save:hover { background:rgba(124,92,252,0.35); }
+  .btn-del  { background:rgba(255,77,109,0.12); color:var(--danger); }
+  .btn-del:hover  { background:rgba(255,77,109,0.25); }
+  .add-line-row { display:flex; gap:0.6rem; margin-top:1.2rem; }
+  .add-input {
+    flex:1; background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    font-family:'DM Mono',monospace; font-size:0.8rem; padding:0.6rem 0.9rem;
+    border-radius:8px; outline:none; transition:border-color 0.2s;
+  }
+  .add-input:focus { border-color:var(--accent); }
+  .add-input::placeholder { color:var(--muted); }
+  .btn-add {
+    background:var(--accent); color:#fff; border:none; padding:0.6rem 1.2rem;
+    border-radius:8px; cursor:pointer; font-family:'DM Mono',monospace;
+    font-size:0.8rem; font-weight:500; transition:opacity 0.2s;
+  }
+  .btn-add:hover { opacity:0.85; }
+
+  /* ---- FILE UPLOAD PANEL ---- */
+  .upload-zone {
+    border:2px dashed var(--border); border-radius:16px; padding:2.5rem;
+    text-align:center; cursor:pointer; transition:all 0.2s; margin-bottom:1.5rem;
+    position:relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color:var(--accent); background:rgba(124,92,252,0.05);
+  }
+  .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .upload-icon { font-size:2.5rem; margin-bottom:0.8rem; }
+  .upload-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; margin-bottom:0.4rem; }
+  .upload-sub { color:var(--muted); font-size:0.75rem; }
+
+  .files-list { display:flex; flex-direction:column; gap:0.8rem; }
+
+  .file-card {
+    background:var(--surface2); border:1px solid var(--border); border-radius:12px;
+    padding:1rem 1.2rem; display:flex; align-items:center; gap:1rem;
+    transition:border-color 0.2s; animation:fadeUp 0.3s ease;
+  }
+  .file-card:hover { border-color:var(--accent); }
+  .file-icon { font-size:1.5rem; flex-shrink:0; }
+  .file-info { flex:1; min-width:0; }
+  .file-name { font-size:0.82rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .file-size { font-size:0.68rem; color:var(--muted); margin-top:0.2rem; }
+  .file-btns { display:flex; gap:0.5rem; flex-shrink:0; }
+  .btn-view {
+    background:rgba(0,229,200,0.1); color:var(--accent2); border:1px solid rgba(0,229,200,0.2);
+    font-size:0.68rem; padding:0.3rem 0.7rem; border-radius:6px; cursor:pointer;
+    font-family:'DM Mono',monospace; transition:all 0.2s;
+  }
+  .btn-view:hover { background:rgba(0,229,200,0.2); }
+  .btn-remove {
+    background:rgba(255,77,109,0.1); color:var(--danger); border:1px solid rgba(255,77,109,0.2);
+    font-size:0.68rem; padding:0.3rem 0.7rem; border-radius:6px; cursor:pointer;
+    font-family:'DM Mono',monospace; transition:all 0.2s;
+  }
+  .btn-remove:hover { background:rgba(255,77,109,0.2); }
+
+  /* ---- FILE PREVIEW MODAL ---- */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000;
+    display:none; align-items:center; justify-content:center; padding:2rem;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    width:100%; max-width:800px; max-height:85vh; display:flex; flex-direction:column;
+    animation:fadeUp 0.3s ease;
+  }
+  .modal-header {
+    display:flex; align-items:center; gap:1rem; padding:1.2rem 1.5rem;
+    border-bottom:1px solid var(--border);
+  }
+  .modal-title { font-family:'Syne',sans-serif; font-weight:700; flex:1; }
+  .modal-close {
+    background:none; border:1px solid var(--border); color:var(--muted);
+    width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:1rem;
+    display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+  }
+  .modal-close:hover { border-color:var(--danger); color:var(--danger); }
+  .modal-body { flex:1; overflow-y:auto; padding:1.5rem; }
+  .modal-body::-webkit-scrollbar { width:4px; }
+  .modal-body::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+  .doc-preview {
+    font-size:0.8rem; line-height:1.8; color:var(--text);
+    white-space:pre-wrap; word-break:break-word;
+  }
+
+  /* ---- Q&A ---- */
+  .qa-area { display:flex; flex-direction:column; height:100%; }
+  .chat-history {
+    flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1.2rem;
+    padding-bottom:1rem; min-height:300px; max-height:55vh;
+  }
+  .chat-history::-webkit-scrollbar { width:4px; }
+  .chat-history::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+  .empty-state {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:0.8rem; color:var(--muted); padding:2rem 0;
+  }
+  .empty-icon { font-size:2rem; opacity:0.4; }
+  .empty-text { font-size:0.8rem; text-align:center; }
+  .msg { animation:fadeUp 0.3s ease; }
+  .msg-q { display:flex; justify-content:flex-end; }
+  .msg-q .bubble {
+    background:rgba(124,92,252,0.2); border:1px solid rgba(124,92,252,0.3); color:var(--text);
+    padding:0.7rem 1rem; border-radius:12px 12px 4px 12px; max-width:85%; font-size:0.82rem; line-height:1.5;
+  }
+  .msg-a { display:flex; flex-direction:column; gap:0.5rem; }
+  .msg-a .bubble {
+    background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    padding:0.8rem 1rem; border-radius:4px 12px 12px 12px; max-width:90%; font-size:0.82rem; line-height:1.6;
+  }
+  .sources-row { display:flex; flex-wrap:wrap; gap:0.4rem; padding-left:0.2rem; }
+  .source-chip {
+    font-size:0.65rem; padding:0.2rem 0.6rem; background:rgba(0,229,200,0.08);
+    border:1px solid rgba(0,229,200,0.2); color:var(--accent2); border-radius:100px;
+    max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .qa-input-row { display:flex; gap:0.6rem; margin-top:1.2rem; }
+  .q-input {
+    flex:1; background:var(--surface2); border:1px solid var(--border); color:var(--text);
+    font-family:'DM Mono',monospace; font-size:0.82rem; padding:0.75rem 1rem;
+    border-radius:10px; outline:none; transition:border-color 0.2s;
+  }
+  .q-input:focus { border-color:var(--accent); }
+  .q-input::placeholder { color:var(--muted); }
+  .ask-btn {
+    background:linear-gradient(135deg,var(--accent),#9b7aff); color:#fff; border:none;
+    padding:0.75rem 1.4rem; border-radius:10px; cursor:pointer;
+    font-family:'DM Mono',monospace; font-size:0.82rem; font-weight:500;
+    transition:opacity 0.2s,transform 0.1s; white-space:nowrap;
+  }
+  .ask-btn:hover { opacity:0.9; }
+  .ask-btn:active { transform:scale(0.97); }
+  .ask-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* ---- USER PANEL ---- */
+  #user { background:var(--bg); }
+  .user-body { flex:1; max-width:720px; width:100%; margin:0 auto; padding:2rem; display:flex; flex-direction:column; }
+
+  /* ---- UPLOAD PROGRESS ---- */
+  .upload-progress {
+    background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    padding:1rem 1.2rem; margin-bottom:1rem; display:none;
+  }
+  .upload-progress.show { display:flex; align-items:center; gap:0.8rem; }
+  .progress-bar-wrap { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .progress-bar { height:100%; background:var(--accent); border-radius:2px; width:0%; transition:width 0.3s; }
+
+  /* ---- TOAST ---- */
+  .toast {
+    position:fixed; bottom:2rem; right:2rem; background:var(--surface2);
+    border:1px solid var(--border); color:var(--text); padding:0.75rem 1.2rem;
+    border-radius:10px; font-size:0.78rem; box-shadow:0 8px 32px rgba(0,0,0,0.4);
+    z-index:9999; opacity:0; transform:translateY(10px); transition:all 0.3s; pointer-events:none;
+  }
+  .toast.show { opacity:1; transform:translateY(0); }
+  .toast.success { border-color:var(--accent2); }
+  .toast.error   { border-color:var(--danger); }
+
+  .spinner {
+    display:inline-block; width:14px; height:14px;
+    border:2px solid rgba(255,255,255,0.2); border-top-color:#fff;
+    border-radius:50%; animation:spin 0.7s linear infinite;
+    vertical-align:middle; margin-right:6px;
+  }
+
+  .empty-files { color:var(--muted); font-size:0.8rem; text-align:center; padding:2rem 0; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes spin   { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+
+<!-- ======= LANDING ======= -->
+<div id="landing" class="page active">
+  <div class="landing-inner">
+    <div class="landing-tag">⚡ RAG Knowledge System</div>
+    <h1 class="landing-title">Who are<br/><span>you today?</span></h1>
+    <p class="landing-sub">Choose your role to continue.</p>
+    <div class="role-cards">
+      <div class="role-card admin-card" onclick="goTo('admin')">
+        <div class="card-icon">🛡️</div>
+        <div class="card-title">Admin</div>
+        <div class="card-desc">Full access — manage documents and query the AI.</div>
+        <div class="card-features">
+          <div class="feat"><div class="feat-dot"></div>Upload PDF or TXT files</div>
+          <div class="feat"><div class="feat-dot"></div>Edit & manage document lines</div>
+          <div class="feat"><div class="feat-dot"></div>Preview uploaded documents</div>
+          <div class="feat"><div class="feat-dot"></div>Ask the AI questions</div>
+        </div>
+      </div>
+      <div class="role-card user-card" onclick="goTo('user')">
+        <div class="card-icon">👤</div>
+        <div class="card-title">User</div>
+        <div class="card-desc">Read-only access — query the AI knowledge base.</div>
+        <div class="card-features">
+          <div class="feat"><div class="feat-dot"></div>Ask questions</div>
+          <div class="feat"><div class="feat-dot"></div>Get AI answers</div>
+          <div class="feat"><div class="feat-dot"></div>See source references</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ======= ADMIN PANEL ======= -->
+<div id="admin" class="page">
+  <div class="panel-header">
+    <button class="back-btn" onclick="goTo('landing')">← Back</button>
+    <div class="panel-title">Admin Panel</div>
+    <span class="panel-badge badge-admin">Admin</span>
+  </div>
+
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button class="tab-btn active" onclick="switchTab('tab-docs')">📄 Document Manager</button>
+    <button class="tab-btn" onclick="switchTab('tab-upload')">📁 Upload Files</button>
+    <button class="tab-btn" onclick="switchTab('tab-qa')">🤖 Ask AI</button>
+  </div>
+
+  <!-- Tab: Document Manager + Q&A side by side -->
+  <div id="tab-docs" class="tab-panel active">
+    <div class="two-col">
+      <div>
+        <div class="section-label">📄 document.txt lines</div>
+        <div id="doc-lines"></div>
+        <div class="add-line-row">
+          <input class="add-input" id="new-line-input" placeholder="Add a new line..."/>
+          <button class="btn-add" onclick="addLine()">+ Add</button>
+        </div>
+      </div>
+      <div>
+        <div class="section-label">🤖 Quick Q&A</div>
+        <div class="qa-area">
+          <div class="chat-history" id="admin-chat">
+            <div class="empty-state">
+              <div class="empty-icon">💬</div>
+              <div class="empty-text">Ask anything about your documents.</div>
+            </div>
+          </div>
+          <div class="qa-input-row">
+            <input class="q-input" id="admin-q" placeholder="Type your question..." onkeydown="if(event.key==='Enter') askQuestion('admin')"/>
+            <button class="ask-btn" id="admin-ask-btn" onclick="askQuestion('admin')">Ask</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Upload Files -->
+  <div id="tab-upload" class="tab-panel">
+    <div class="upload-zone" id="upload-zone">
+      <input type="file" accept=".pdf,.txt" onchange="handleFileUpload(this.files[0])"/>
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">Drop a file or click to browse</div>
+      <div class="upload-sub">Supports PDF and TXT files · File is added to the RAG automatically</div>
+    </div>
+
+    <div class="upload-progress" id="upload-progress">
+      <span class="spinner"></span>
+      <span style="font-size:0.8rem">Uploading and rebuilding RAG...</span>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+    </div>
+
+    <div class="section-label" style="margin-top:0.5rem">📋 Uploaded Files</div>
+    <div id="files-list" class="files-list">
+      <div class="empty-files">No files uploaded yet.</div>
+    </div>
+  </div>
+
+  <!-- Tab: Full Q&A -->
+  <div id="tab-qa" class="tab-panel">
+    <div class="qa-area" style="flex:1">
+      <div class="section-label">🤖 Ask the AI</div>
+      <div class="chat-history" id="admin-chat2" style="max-height:calc(100vh - 320px)">
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-text">Ask questions across all your uploaded documents.</div>
+        </div>
+      </div>
+      <div class="qa-input-row">
+        <input class="q-input" id="admin-q2" placeholder="Ask anything from your documents..." onkeydown="if(event.key==='Enter') askQuestion('admin2')"/>
+        <button class="ask-btn" id="admin-ask-btn2" onclick="askQuestion('admin2')">Ask</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ======= USER PANEL ======= -->
+<div id="user" class="page">
+  <div class="panel-header">
+    <button class="back-btn" onclick="goTo('landing')">← Back</button>
+    <div class="panel-title">Knowledge Query</div>
+    <span class="panel-badge badge-user">User</span>
+  </div>
+  <div class="user-body">
+    <div class="section-label">🤖 Ask the AI</div>
+    <div class="qa-area" style="flex:1">
+      <div class="chat-history" id="user-chat" style="max-height:calc(100vh - 260px)">
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-text">Ask any question.<br/>Answers come from the knowledge documents.</div>
+        </div>
+      </div>
+      <div class="qa-input-row">
+        <input class="q-input" id="user-q" placeholder="What would you like to know?" onkeydown="if(event.key==='Enter') askQuestion('user')"/>
+        <button class="ask-btn" id="user-ask-btn" onclick="askQuestion('user')">Ask</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- File Preview Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Document Preview</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="doc-preview" id="modal-content">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "http://localhost:8000";
+
+// ---- Navigation ----
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(page).classList.add('active');
+  if (page === 'admin') { loadDocLines(); loadFiles(); }
+}
+
+// ---- Tabs ----
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  event.target.classList.add('active');
+  if (tabId === 'tab-upload') loadFiles();
+}
+
+// ---- Toast ----
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ---- Escape HTML ----
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+// ---- Load Document Lines ----
+async function loadDocLines() {
+  const container = document.getElementById('doc-lines');
+  try {
+    const res = await fetch(`${API}/document`);
+    const data = await res.json();
+    container.innerHTML = '';
+    data.lines.forEach((line, i) => {
+      const row = document.createElement('div');
+      row.className = 'doc-line';
+      row.innerHTML = `
+        <span class="line-num">${i+1}</span>
+        <textarea class="line-text" id="lt-${i}" rows="1" oninput="autoResize(this)">${escHtml(line)}</textarea>
+        <div class="line-actions">
+          <button class="btn-save" onclick="saveLine(${i})">Save</button>
+          <button class="btn-del" onclick="deleteLine(${i})">Del</button>
+        </div>`;
+      container.appendChild(row);
+    });
+    container.querySelectorAll('.line-text').forEach(autoResize);
+  } catch(e) {
+    container.innerHTML = '<div style="color:var(--danger);font-size:0.8rem;">⚠ Cannot connect to backend.</div>';
+  }
+}
+
+async function saveLine(i) {
+  const text = document.getElementById(`lt-${i}`).value;
+  try {
+    const res = await fetch(`${API}/document/update`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({line_index:i, new_text:text})
+    });
+    if (res.ok) { toast('✓ Line saved & AI updated'); loadDocLines(); }
+    else toast('Failed to save','error');
+  } catch(e) { toast('Server error','error'); }
+}
+
+async function deleteLine(i) {
+  if (!confirm('Delete this line?')) return;
+  try {
+    const res = await fetch(`${API}/document/delete/${i}`, {
+      method:'DELETE'
+    });
+    if (res.ok) { toast('✓ Line deleted'); loadDocLines(); }
+    else toast('Failed to delete','error');
+  } catch(e) { toast('Server error','error'); }
+}
+
+async function addLine() {
+  const input = document.getElementById('new-line-input');
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    const res = await fetch(`${API}/document/add`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text:text})
+    });
+    if (res.ok) { input.value=''; toast('✓ Line added'); loadDocLines(); }
+    else toast('Failed to add','error');
+  } catch(e) { toast('Server error','error'); }
+}
+
+// ---- File Upload ----
+async function handleFileUpload(file) {
+  if (!file) return;
+  const allowed = ['application/pdf','text/plain'];
+  if (!file.name.endsWith('.pdf') && !file.name.endsWith('.txt')) {
+    toast('Only PDF and TXT files allowed','error'); return;
+  }
+
+  const progress = document.getElementById('upload-progress');
+  const bar = document.getElementById('progress-bar');
+  progress.classList.add('show');
+  bar.style.width = '30%';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    bar.style.width = '70%';
+    const res = await fetch(`${API}/upload`, { method:'POST', body: formData });
+    bar.style.width = '100%';
+    if (res.ok) {
+      toast(`✓ ${file.name} uploaded & RAG updated`);
+      setTimeout(() => { progress.classList.remove('show'); bar.style.width='0%'; }, 600);
+      loadFiles();
+    } else {
+      const err = await res.json();
+      toast(err.detail || 'Upload failed','error');
+      progress.classList.remove('show');
+    }
+  } catch(e) {
+    toast('Server error','error');
+    progress.classList.remove('show');
+  }
+}
+
+// Drag and drop
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFileUpload(file);
+});
+
+// ---- Load Files List ----
+async function loadFiles() {
+  const container = document.getElementById('files-list');
+  try {
+    const res = await fetch(`${API}/files`);
+    const data = await res.json();
+    if (!data.files.length) {
+      container.innerHTML = '<div class="empty-files">No files uploaded yet.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    data.files.forEach(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      const icon = ext === 'pdf' ? '📕' : '📄';
+      const size = f.size > 1024 ? (f.size/1024).toFixed(1)+'KB' : f.size+'B';
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.innerHTML = `
+        <div class="file-icon">${icon}</div>
+        <div class="file-info">
+          <div class="file-name">${escHtml(f.name)}</div>
+          <div class="file-size">${size} · ${ext.toUpperCase()}</div>
+        </div>
+        <div class="file-btns">
+          <button class="btn-view" onclick="previewFile('${escHtml(f.name)}')">👁 View</button>
+          <button class="btn-remove" onclick="removeFile('${escHtml(f.name)}')">🗑 Remove</button>
+        </div>`;
+      container.appendChild(card);
+    });
+  } catch(e) {
+    container.innerHTML = '<div class="empty-files" style="color:var(--danger)">⚠ Cannot connect to backend.</div>';
+  }
+}
+
+// ---- Preview File ----
+async function previewFile(filename) {
+  document.getElementById('modal-title').textContent = filename;
+  document.getElementById('modal-content').textContent = 'Loading...';
+  document.getElementById('modal-overlay').classList.add('open');
+  try {
+    const res = await fetch(`${API}/files/${encodeURIComponent(filename)}`);
+    const data = await res.json();
+    document.getElementById('modal-content').textContent = data.content;
+  } catch(e) {
+    document.getElementById('modal-content').textContent = 'Could not load file preview.';
+  }
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+// ---- Remove File ----
+async function removeFile(filename) {
+  if (!confirm(`Remove ${filename} from the RAG?`)) return;
+  try {
+    const res = await fetch(`${API}/files/${encodeURIComponent(filename)}`, { method:'DELETE' });
+    if (res.ok) { toast(`✓ ${filename} removed`); loadFiles(); }
+    else toast('Failed to remove','error');
+  } catch(e) { toast('Server error','error'); }
+}
+
+// ---- Ask Question ----
+async function askQuestion(role) {
+  const map = {
+    admin:  { inputId:'admin-q',  chatId:'admin-chat',  btnId:'admin-ask-btn' },
+    admin2: { inputId:'admin-q2', chatId:'admin-chat2', btnId:'admin-ask-btn2' },
+    user:   { inputId:'user-q',   chatId:'user-chat',   btnId:'user-ask-btn' }
+  };
+  const { inputId, chatId, btnId } = map[role];
+  const input = document.getElementById(inputId);
+  const question = input.value.trim();
+  if (!question) return;
+
+  const chat = document.getElementById(chatId);
+  const btn  = document.getElementById(btnId);
+  const empty = chat.querySelector('.empty-state');
+  if (empty) empty.remove();
+
+  const qMsg = document.createElement('div');
+  qMsg.className = 'msg msg-q';
+  qMsg.innerHTML = `<div class="bubble">${escHtml(question)}</div>`;
+  chat.appendChild(qMsg);
+  input.value = '';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Thinking...';
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    const res = await fetch(`${API}/ask`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({question})
+    });
+    const data = await res.json();
+    const aMsg = document.createElement('div');
+    aMsg.className = 'msg msg-a';
+    const sourcesHtml = data.sources && data.sources.length
+      ? `<div class="sources-row">${data.sources.map(s=>`<span class="source-chip" title="${escHtml(s)}">📎 ${escHtml(s.substring(0,50))}…</span>`).join('')}</div>`
+      : '';
+    aMsg.innerHTML = `<div class="bubble">${escHtml(data.answer||data.detail||'No answer.')}</div>${sourcesHtml}`;
+    chat.appendChild(aMsg);
+  } catch(e) {
+    const errMsg = document.createElement('div');
+    errMsg.className = 'msg msg-a';
+    errMsg.innerHTML = `<div class="bubble" style="color:var(--danger)">⚠ Cannot connect to backend. Make sure it is running on port 8000.</div>`;
+    chat.appendChild(errMsg);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Ask';
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
+</body>
+</html>

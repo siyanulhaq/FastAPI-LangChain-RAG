@@ -1,42 +1,43 @@
-# ⚡ High-Performance RAG Knowledge System
+# FastAPI LangChain RAG System
 
-A professional, full-stack Retrieval-Augmented Generation (RAG) system built with **FastAPI**, **LangChain**, and **ChromaDB**. This system allows users to upload PDF/TXT documents and query them using the Llama 3.1 model via Groq.
+Production-style Retrieval-Augmented Generation (RAG) application built with FastAPI, LangChain, ChromaDB, and Groq LLMs.
 
-## 🚀 Features
-- **Modern UI:** Sleek, dark-mode dashboard with Admin and User roles.
-- **Dynamic Document Management:** Add, edit, or delete context lines directly from the UI.
-- **Multi-File Support:** Upload PDFs and Text files to expand the AI's knowledge base.
-- **Locked-In Reliability:** Optimized for Windows with an in-memory vector store to prevent file-locking issues.
-- **Fast Inference:** Powered by Groq's Llama 3.1-8b-instant model.
+## Highlights
+- Document ingestion for PDF and TXT files
+- Embedding + retrieval pipeline with ChromaDB
+- FastAPI backend with clean API endpoints
+- Browser-based UI for querying uploaded knowledge
+- Groq-powered low-latency responses
 
-## 🛠️ Tech Stack
-- **Frontend:** Vanilla HTML5, CSS3 (Glassmorphism), JavaScript (Fetch API).
-- **Backend:** FastAPI (Python), Uvicorn.
-- **AI Core:** LangChain, HuggingFace (Embeddings), Groq (LLM).
-- **Vector Store:** ChromaDB.
+## Tech Stack
+- Python, FastAPI, Uvicorn
+- LangChain, ChromaDB
+- Groq, HuggingFace embeddings
+- HTML, CSS, JavaScript
 
-## 📦 Setup & Installation
+## Project Structure
+```text
+.
+|-- rag_backend.py
+|-- rag_frontend.html
+|-- run.bat
+|-- requirements.txt
+`-- document.txt
+```
 
-1. **Install Dependencies:**
-   ```bash
-   pip install fastapi uvicorn langchain langchain-groq langchain-huggingface pypdf chromadb python-multipart
-   ```
+## Quick Start
+```bash
+pip install -r requirements.txt
+python rag_backend.py
+```
 
-2. **Set Environment Variables:**
-   Make sure to set your `GROQ_API_KEY` in `rag_backend.py` or as an environment variable.
+Then open `rag_frontend.html` in your browser.
 
-3. **Run the System:**
-   Double-click `run.bat` or run:
-   ```bash
-   python rag_backend.py
-   ```
+## Use Cases
+- Internal knowledge assistant
+- Domain-specific Q&A over private docs
+- Fast portfolio-ready RAG demonstration
 
-4. **Access the UI:**
-   Open `rag_frontend.html` in your browser.
-
-## 🛡️ Role-Based Access
-- **Admin:** Full control over documents, uploads, and AI queries.
-- **User:** Read-only access to query the knowledge base.
-
----
-*Created as a high-impact portfolio project.*
+## Author
+Siyan Ul Haq  
+GitHub: https://github.com/siyanulhaq

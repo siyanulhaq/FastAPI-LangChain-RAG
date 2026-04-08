@@ -10,7 +10,6 @@ Production-ready RAG application with document ingestion, semantic retrieval, an
 ## Demo
 ![RAG Demo](docs/demo.gif)
 
-> Replace `docs/demo.gif` with your UI walkthrough GIF.
 
 ## Key Features
 - PDF and TXT document ingestion
